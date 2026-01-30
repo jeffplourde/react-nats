@@ -1,0 +1,10 @@
+src/
+tests/
+examples/
+*.test.ts
+*.test.tsx
+tsconfig.json
+tsup.config.ts
+.git/
+.gitignore
+node_modules/
