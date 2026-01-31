@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState, useRef } from 'react';
+import { createContext, useEffect, useState, useRef, useMemo } from 'react';
 import { wsconnect, NatsConnection, ConnectionOptions } from '@nats-io/nats-core';
 
 export const NatsContext = createContext<NatsConnection | null>(null);
@@ -9,14 +9,24 @@ export interface NatsProviderProps {
   children: React.ReactNode;
 }
 
+const DEFAULT_OPTIONS: Partial<ConnectionOptions> = {
+  reconnect: true,
+  pingInterval: 10000,
+  maxPingOut: 5,
+};
+
 export const NatsProvider: React.FC<NatsProviderProps> = ({
   url,
-  options = {},
+  options,
   children,
 }) => {
   const [connection, setConnection] = useState<NatsConnection | null>(null);
   const connRef = useRef<NatsConnection | null>(null);
   const isConnectingRef = useRef(false);
+  const connectionOptions = useMemo(
+    () => ({ ...DEFAULT_OPTIONS, ...options }),
+    [options]
+  );
 
   useEffect(() => {
     if (isConnectingRef.current || connRef.current) {
@@ -30,12 +40,8 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
       try {
         const newConnection = await wsconnect({
           servers: url,
-          reconnect: true,
-          pingInterval: 10000,
-          maxPingOut: 5,
-          ...options,
+          ...connectionOptions,
         });
-
         if (isActive) {
           connRef.current = newConnection;
           setConnection(newConnection);
@@ -77,7 +83,7 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
       }
       isConnectingRef.current = false;
     };
-  }, [url, options]);
+  }, [url, connectionOptions]);
 
   return (
     <NatsContext.Provider value={connection}>

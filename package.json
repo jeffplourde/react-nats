@@ -8,8 +8,7 @@
   "exports": {
     ".": {
       "require": "./dist/index.js",
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "import": "./dist/index.mjs"
     }
   },
   "files": [
@@ -32,26 +31,26 @@
     "kv",
     "key-value"
   ],
-  "author": "",
+  "author": "jeff@jeffplourde.com",
   "license": "MIT",
   "peerDependencies": {
-    "react": "^18.0.0",
-    "@nats-io/nats-core": "^2.28.0",
-    "@nats-io/jetstream": "^2.28.0",
-    "@nats-io/kv": "^2.28.0"
+    "@nats-io/jetstream": "^3.0.2-1",
+    "@nats-io/kv": "^3.0.2-1",
+    "@nats-io/nats-core": "^3.0.2-1",
+    "react": "^19.0.0"
   },
   "devDependencies": {
-    "@types/react": "^18.2.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.0.0",
-    "react": "^18.2.0",
+    "@types/react": "^19.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "eslint": "^9.39.2",
+    "react": "^19.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.0.0",
-    "vitest": "^1.0.0"
+    "vitest": "^4.0.18"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/react-nats"
+    "url": "https://github.com/jeffplourde/react-nats"
   }
 }
