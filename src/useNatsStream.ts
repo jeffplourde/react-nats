@@ -79,8 +79,8 @@ export function useNatsStream<T>({
       }
     };
 
-    setupNats().catch((error) => {
-      if (error.name === 'AbortError') {
+    setupNats().catch((error: unknown) => {
+      if (error instanceof Error && error.name === 'AbortError') {
         return;
       }
       if (isCurrent) {

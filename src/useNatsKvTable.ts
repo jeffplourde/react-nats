@@ -13,9 +13,9 @@ export interface NatsKvTableOptions<T, U> {
   key?: string | string[];
 }
 
-const stableUpsert = (
-  arr: NatsEntry<any>[],
-  newEntry: NatsEntry<any>,
+const stableUpsert = <T>(
+  arr: NatsEntry<T>[],
+  newEntry: NatsEntry<T>,
   inPlace: boolean = false
 ) => {
   const index = arr.findIndex((item) => item.key === newEntry.key);
@@ -97,7 +97,9 @@ export function useNatsKvTable<T, U = T>({
               setEntries((prev) => prev.filter((item) => item.key !== e.key));
             }
           }
-        })();
+        })().catch((err) => {
+          console.error('Error in KV watch loop:', err);
+        });
       } else {
         (async () => {
           for await (const e of watch) {
@@ -116,7 +118,9 @@ export function useNatsKvTable<T, U = T>({
               setEntries((prev) => prev.filter((item) => item.key !== e.key));
             }
           }
-        })();
+        })().catch((err) => {
+          console.error('Error in KV watch loop:', err);
+        });
       }
     };
 
