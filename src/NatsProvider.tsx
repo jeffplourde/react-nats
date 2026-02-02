@@ -48,7 +48,12 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
 
           newConnection.closed()
             .then((err: Error | void) => {
-              console.log('NATS connection closed:', err?.message || 'Manual close');
+              if (err?.message) {
+                console.log('NATS connection closed:', err?.message);
+              } else {
+                // Connection closed by request
+              }
+
               if (isActive) {
                 connRef.current = null;
                 setConnection(null);
@@ -59,8 +64,8 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
               console.error('Error monitoring connection closure:', err);
             });
         } else {
+          // Component unmounted before connection established
           newConnection.close()
-            .then(() => console.log('Closed superseded connection'))
             .catch((err) => {
               console.error('Error closing superseded connection:', err);
             });
