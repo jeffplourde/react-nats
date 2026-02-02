@@ -2,16 +2,22 @@
 
 ## Overview
 
-This directory contains integration tests for the react-nats library hooks. The tests use:
+This directory contains comprehensive integration tests for all react-nats library hooks. The tests use:
 
 - **Vitest** - Fast test runner with modern features
 - **@testing-library/react** - React hooks testing utilities
-- **@testcontainers/nats** - Manages real NATS server instances
-- **happy-dom** - Lightweight DOM implementation with WebSocket support
+- **@testcontainers/nats** - Manages real NATS server instances with JetStream
+- **happy-dom** - Lightweight DOM implementation with real WebSocket support
+- **ws** - Node.js WebSocket library for real network connections
 
-## Current Status
+## Test Status
 
-The test infrastructure is set up but requires WebSocket-enabled NATS configuration. The NATS Docker image doesn't support WebSocket via command-line flags and requires a configuration file.
+✅ **All 17 tests passing!**
+
+The test suite validates all three hooks against real NATS infrastructure:
+- ✅ useNatsConnection (4 tests)
+- ✅ useNatsKvTable (7 tests)
+- ✅ useNatsStream (6 tests)
 
 ## Running Tests
 
@@ -26,40 +32,83 @@ npm run test:ui
 npm run test:coverage
 ```
 
+**Requirements:**
+- Docker must be running (for Testcontainers)
+- First run will download the NATS Docker image (~50MB)
+
 ## Test Files
 
-- `useNatsConnection.test.tsx` - Tests basic NATS connection hook
-- `useNatsKvTable.test.tsx` - Tests KV bucket watching
-- `useNatsStream.test.tsx` - Tests JetStream message consumption
-- `helpers.tsx` - Shared test utilities and setup
-- `setup.ts` - Global test configuration
+- **`useNatsConnection.test.tsx`** - Tests WebSocket connection establishment and lifecycle
+- **`useNatsKvTable.test.tsx`** - Tests KV bucket watching with real-time updates
+- **`useNatsStream.test.tsx`** - Tests JetStream message consumption with time-based replay
+- **`helpers.tsx`** - Shared utilities (test wrapper, decoder, reducer, container setup)
+- **`setup.ts`** - Global test configuration with real WebSocket injection
+- **`nats-ws.conf`** - NATS server configuration with WebSocket and JetStream enabled
 
-## WebSocket Configuration
+## Architecture
 
-To enable WebSocket support in NATS for testing, you need a configuration file:
+### Real Integration Testing
 
-```conf
-# nats-ws.conf
-port: 4222
-jetstream: enabled
+These are true integration tests that:
+1. Start isolated NATS containers with JetStream + WebSocket
+2. Test actual library hooks (not mocks) with real connections
+3. Validate real-time messaging, KV watching, and stream consumption
+4. Clean up containers automatically after tests
 
-websocket {
-  port: 8080
-  no_tls: true
-}
+### WebSocket Configuration
+
+The tests use a custom NATS configuration (`nats-ws.conf`) that enables:
+- **WebSocket server** on port 8080 (no TLS for testing)
+- **JetStream** for stream and KV functionality
+- **Standard NATS** on port 4222
+
+Testcontainers automatically:
+- Copies the config file into the container
+- Maps ports to random host ports
+- Waits for "Server is ready" log message
+- Cleans up after test completion
+
+### Test Utilities
+
+**`helpers.tsx` exports:**
+- `createTestWrapper(url)` - Wraps components with NatsProvider
+- `decoder` - Standard JSON decoder for tests
+- `reducer` - Default message reducer (appends to array)
+- `startNatsWithWebSocket()` - Creates configured NATS container
+- `getWebSocketUrl(container)` - Gets WebSocket URL from container
+
+## Example Test Pattern
+
+```typescript
+describe('useNatsConnection', () => {
+  let natsContainer: StartedTestContainer;
+  let connectionUrl: string;
+
+  beforeAll(async () => {
+    natsContainer = await startNatsWithWebSocket();
+    connectionUrl = getWebSocketUrl(natsContainer);
+  }, 60000);
+
+  afterAll(async () => {
+    await natsContainer.stop();
+  });
+
+  it('should establish connection', async () => {
+    const wrapper = createTestWrapper(connectionUrl);
+    const { result } = renderHook(() => useNatsConnection(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current).not.toBeNull();
+    });
+  });
+});
 ```
 
-Then run NATS with:
-```bash
-docker run -p 4222:4222 -p 8080:8080 -v $(pwd)/nats-ws.conf:/nats-ws.conf nats:2.10-alpine -c /nats-ws.conf
-```
+## CI/CD Integration
 
-## Alternative: Manual Testing
+The tests are ready for CI/CD pipelines that support Docker:
+- ✅ GitHub Actions (Docker available by default)
+- ✅ GitLab CI (with Docker executor)
+- ✅ CircleCI (with Docker executor)
 
-For now, the recommended approach is to test the library using the `examples/` directory with a locally running NATS server configured with WebSocket support.
-
-## Future Improvements
-
-- Add NATS configuration file to testcontainers setup
-- Configure testcontainers to mount and use the WebSocket config
-- Add end-to-end tests once WebSocket support is properly configured
+No additional services or setup needed - Testcontainers handles everything.
