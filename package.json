@@ -1,6 +1,6 @@
 {
   "name": "react-nats",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "React hooks for NATS messaging and JetStream",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
