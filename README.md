@@ -7,6 +7,7 @@ React hooks for NATS messaging and JetStream.
 - 🔌 **NatsProvider** - WebSocket connection management with auto-reconnect
 - 📊 **useNatsKvTable** - Reactive NATS KV bucket with real-time updates
 - 📨 **useNatsStream** - JetStream consumer with time-based replay
+- 📡 **useNatsSubscribe** - Plain pub/sub subscription with message accumulation
 - ⚡ **Performance optimized** - Batched updates and stable sorting
 - 🎯 **TypeScript first** - Full type safety with generics
 - 🧪 **Zero dependencies** - Only peer dependencies on React and NATS
@@ -64,7 +65,35 @@ function MyComponent() {
 }
 ```
 
-### 3. Consume JetStream messages
+### 3. Subscribe to plain pub/sub subjects
+
+```tsx
+import { useNatsSubscribe } from 'react-nats';
+
+interface Notification {
+  message: string;
+  level: 'info' | 'warn' | 'error';
+}
+
+function NotificationsComponent() {
+  const { messages, clear } = useNatsSubscribe<Notification>({
+    subject: 'notifications.>',
+  });
+
+  return (
+    <div>
+      <button onClick={clear}>Clear</button>
+      <ul>
+        {messages.map((n, i) => (
+          <li key={i}>[{n.level}] {n.message}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### 4. Consume JetStream messages
 
 ```tsx
 import { useNatsStream } from 'react-nats';
@@ -191,6 +220,53 @@ const trades = useNatsStream({
   },
   opt_start_time: new Date(Date.now() - 86400000), // Last 24 hours
 });
+```
+
+### `useNatsSubscribe<T>(options)`
+
+Subscribes to a plain NATS pub/sub subject and accumulates received messages.
+
+**Options:**
+- `subject: string | null | undefined` - Subject to subscribe to. Pass `null` or `undefined` to conditionally skip subscription (messages array is reset to `[]`)
+- `decoder?: (data: Uint8Array) => T` - Decode function for message payloads (default: `JSON.parse` via `TextDecoder`)
+- `queue?: string` - Queue group name for load-balanced subscriptions
+
+**Returns:** `{ messages: T[], clear: () => void }`
+- `messages` - Array of decoded messages accumulated in received order
+- `clear()` - Resets the messages array to `[]`
+
+**Notes:**
+- When `subject` changes, the old subscription is torn down and a new one is opened; `messages` resets on each subject change
+- When the component unmounts, the subscription is automatically cancelled
+
+**Example with conditional subscription:**
+```tsx
+function ConditionalSubscriber({ enabled }: { enabled: boolean }) {
+  const { messages, clear } = useNatsSubscribe<{ text: string }>({
+    subject: enabled ? 'chat.room.1' : null,
+  });
+
+  return (
+    <div>
+      {messages.map((m, i) => <p key={i}>{m.text}</p>)}
+      <button onClick={clear}>Clear</button>
+    </div>
+  );
+}
+```
+
+**Example with queue group:**
+```tsx
+// Multiple instances of this component share the load — each message
+// is delivered to only one of them.
+function WorkerComponent() {
+  const { messages } = useNatsSubscribe<{ jobId: string }>({
+    subject: 'jobs.incoming',
+    queue: 'workers',
+  });
+
+  // ...
+}
 ```
 
 ## Common Patterns
